@@ -40,8 +40,15 @@ if (dateFrom && dateTo) {
   const contactForm = document.querySelector("#contact-form");
   const submitBtn = document.querySelector("#submit-btn");
   const submitMsg = document.querySelector("#submit-msg");
+  const handleKey = event => {
+    if (event.code !== "Tab" || event.key !== "Tab") {
+      event.preventDefault();
+    }
+  };
+  let reqInProgress = false;
 
   contactForm.reset();
+  dateTo.disabled = true;
 
   const datePickerFrom = new Datepicker(dateFrom, {
     language: "es",
@@ -70,11 +77,27 @@ if (dateFrom && dateTo) {
     });
   });
 
+  dateFrom.addEventListener("keydown", handleKey);
+  dateTo.addEventListener("keydown", handleKey);
+
   contactForm.addEventListener("submit", async event => {
     event.preventDefault();
-    submitMsg.innerText = "";
 
+    if (reqInProgress) {
+      return;
+    }
+
+    submitMsg.innerText = "";
+    reqInProgress = true;
+
+    // Get form data and validate for spam messages
     var data = new FormData(event.target);
+    var msg = data.get("mensaje").toString();
+
+    if (msg.search(/https?:\/\//im) > -1) {
+      reqInProgress = false;
+      return;
+    }
 
     data.append("duplex", event.target.parentNode.dataset.id);
 
@@ -94,12 +117,16 @@ if (dateFrom && dateTo) {
 
           // Reset form
           contactForm.reset();
+          dateTo.disabled = true;
         } else {
           submitMsg.innerText = "Ha ocurrido un error. Por favor intente nuevamente.";
         }
+
+        reqInProgress = false;
       })
       .catch(error => {
         submitMsg.innerText = "Ha ocurrido un error. Por favor intente nuevamente.";
+        reqInProgress = false;
       });
   });
 }
